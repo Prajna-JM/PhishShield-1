@@ -1,0 +1,22 @@
+
+message,label
+"Hello, your appointment is confirmed for tomorrow.",0
+"Your electricity bill has been paid successfully.",0
+"Thank you for shopping with us. Your order has been shipped.",0
+"Your bank statement is now available. Please log in through the official app.",0
+"Your meeting is scheduled for Monday at 10 AM.",0
+"Your payment was received successfully. Thank you.",0
+"Your package will be delivered today.",0
+"Your password was successfully changed.",0
+"Your college examination timetable is available now.",0
+"Your subscription has been renewed successfully.",0
+"URGENT! Your bank account will be blocked. Verify your details immediately.",1
+"Congratulations! You won a lottery. Click here to claim your prize.",1
+"Your account has been suspended. Send your password to restore access.",1
+"Your ATM card is blocked. Verify your PIN immediately.",1
+"Click this link to claim your free gift before it expires.",1
+"Your bank account will be closed today unless you verify your details.",1
+"Congratulations! You have won a cash prize. Pay a processing fee to receive it.",1
+"Your parcel is on hold. Enter your banking details to release it.",1
+"Your email account will be deleted. Confirm your password immediately.",1
+"URGENT! You have received a refund. Click the suspicious link to collect it.",1
