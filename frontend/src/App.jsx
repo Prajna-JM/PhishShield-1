@@ -32,6 +32,8 @@ import {
 
 import "./App.css";
 
+const API_BASE_URL = "https://phishshield-1-backend.onrender.com";
+
 function App() {
 
   // Logged-in user details
@@ -120,6 +122,35 @@ function App() {
     };
   };
 
+  // Common API error handler
+  const getApiErrorMessage = (err, action) => {
+    console.error(`${action} error:`, err);
+    console.error("Error response:", err.response);
+    console.error("Error message:", err.message);
+
+    if (err.response) {
+      if (err.response.status === 401) {
+        return "Your session has expired. Please log out and log in again.";
+      }
+
+      if (err.response.status === 403) {
+        return "You do not have permission to perform this action.";
+      }
+
+      return (
+        err.response.data?.message ||
+        err.response.data?.error ||
+        `Backend returned error ${err.response.status}.`
+      );
+    }
+
+    if (err.request) {
+      return "No response received from the backend. Please check the Render deployment and browser Console.";
+    }
+
+    return err.message || `Unable to complete ${action}.`;
+  };
+
   // Logout function
   const handleLogout = () => {
     const confirmed = window.confirm(
@@ -181,7 +212,7 @@ function App() {
 
     try {
       const response = await axios.get(
-        "https://phishshield-1-backend.onrender.com/api/stats",
+        `${API_BASE_URL}/api/stats`,
         {
           headers: getAuthHeaders()
         }
@@ -224,14 +255,14 @@ function App() {
     try {
       const [statsResponse, usersResponse] = await Promise.all([
         axios.get(
-          "https://phishshield-1-backend.onrender.com/api/admin/stats",
+          `${API_BASE_URL}/api/admin/stats`,
           {
             headers: getAuthHeaders()
           }
         ),
 
         axios.get(
-          "https://phishshield-1-backend.onrender.com/api/admin/users",
+          `${API_BASE_URL}/api/admin/users`,
           {
             headers: getAuthHeaders()
           }
@@ -250,8 +281,7 @@ function App() {
       console.error("Unable to load admin dashboard:", err);
 
       setAdminError(
-        err.response?.data?.message ||
-        "Unable to load administrator data. Please check your access and backend."
+        getApiErrorMessage(err, "loading administrator data")
       );
 
     } finally {
@@ -268,7 +298,7 @@ function App() {
 
     try {
       const response = await axios.get(
-        `https://phishshield-1-backend.onrender.com/api/admin/user/${user.id}/scans`,
+        `${API_BASE_URL}/api/admin/user/${user.id}/scans`,
         {
           headers: getAuthHeaders()
         }
@@ -282,8 +312,7 @@ function App() {
       console.error("Unable to load user scan history:", err);
 
       setAdminError(
-        err.response?.data?.message ||
-        "Unable to load this user's scan history."
+        getApiErrorMessage(err, "loading this user's scan history")
       );
 
     } finally {
@@ -312,7 +341,7 @@ function App() {
 
     try {
       const response = await axios.post(
-        "https://phishshield-1-backend.onrender.com/api/scan",
+        `${API_BASE_URL}/api/scan`,
         {
           message: message
         },
@@ -320,19 +349,18 @@ function App() {
           headers: {
             "Content-Type": "application/json",
             ...getAuthHeaders()
-          }
+          },
+          timeout: 60000
         }
       );
+
+      console.log("Message scan response:", response.data);
 
       setResult(response.data);
       await loadDashboardStats();
 
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Unable to connect to the backend. Please check whether Flask is running."
-      );
+      setError(getApiErrorMessage(err, "message scanning"));
 
     } finally {
       setLoading(false);
@@ -353,7 +381,7 @@ function App() {
 
     try {
       const response = await axios.post(
-        "https://phishshield-1-backend.onrender.com/api/scan-url",
+        `${API_BASE_URL}/api/scan-url`,
         {
           url: url.trim()
         },
@@ -361,19 +389,18 @@ function App() {
           headers: {
             "Content-Type": "application/json",
             ...getAuthHeaders()
-          }
+          },
+          timeout: 60000
         }
       );
+
+      console.log("URL scan response:", response.data);
 
       setUrlResult(response.data);
       await loadDashboardStats();
 
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Unable to connect to the backend. Please check whether Flask is running."
-      );
+      setError(getApiErrorMessage(err, "URL scanning"));
 
     } finally {
       setLoading(false);
@@ -598,7 +625,7 @@ function App() {
 
           </div>
 
-          {/* Corrected Explainable AI Analysis */}
+          {/* Explainable AI Analysis */}
           <div className="explanation">
 
             <h4>
@@ -626,7 +653,7 @@ function App() {
 
           </div>
 
-          {/* Corrected URL Analysis */}
+          {/* URL Analysis */}
           {Array.isArray(result.explanation?.url_analysis) &&
             result.explanation.url_analysis.length > 0 && (
               <div className="explanation">
