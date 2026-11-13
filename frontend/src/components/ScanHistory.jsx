@@ -20,8 +20,8 @@ function ScanHistory() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [clearing, setClearing] = useState(false);
+    const [selectedHistoryId, setSelectedHistoryId] = useState(null);
 
-    // Fetch scan history
     const fetchHistory = async () => {
         try {
             setLoading(true);
@@ -48,7 +48,14 @@ function ScanHistory() {
                 );
             }
 
-            setHistory(data.history || []);
+            const records = data.history || [];
+            setHistory(records);
+
+            setSelectedHistoryId(currentId =>
+                records.some(item => item.id === currentId)
+                    ? currentId
+                    : null
+            );
 
         } catch (err) {
             setError(err.message);
@@ -57,7 +64,6 @@ function ScanHistory() {
         }
     };
 
-    // Clear scan history
     const handleClearHistory = async () => {
         const confirmed = window.confirm(
             "Are you sure you want to permanently delete all your scan history?"
@@ -91,6 +97,7 @@ function ScanHistory() {
             }
 
             setHistory([]);
+            setSelectedHistoryId(null);
 
             alert(
                 `${data.deleted_count ?? 0} scan records deleted successfully.`
@@ -103,12 +110,10 @@ function ScanHistory() {
         }
     };
 
-    // Load history when component opens
     useEffect(() => {
         fetchHistory();
     }, []);
 
-    // Calculate statistics
     const totalScans = history.length;
 
     const phishingScans = history.filter(
@@ -126,7 +131,6 @@ function ScanHistory() {
             item.detection_status?.toLowerCase() === "suspicious"
     ).length;
 
-    // Format date
     const formatDate = (date) => {
         if (!date) return "N/A";
 
@@ -139,7 +143,6 @@ function ScanHistory() {
         return parsedDate.toLocaleString();
     };
 
-    // Risk level styling
     const getRiskClass = (level) => {
         switch (level?.toLowerCase()) {
             case "high":
@@ -156,7 +159,6 @@ function ScanHistory() {
         }
     };
 
-    // Detection status styling
     const getStatusClass = (status) => {
         switch (status?.toLowerCase()) {
             case "phishing":
@@ -173,10 +175,16 @@ function ScanHistory() {
         }
     };
 
+    const handleRowKeyDown = (event, id) => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setSelectedHistoryId(id);
+        }
+    };
+
     return (
         <div className="history-page">
 
-            {/* Page Heading */}
             <div className="history-heading">
                 <div>
                     <h1>
@@ -212,7 +220,6 @@ function ScanHistory() {
                 </div>
             </div>
 
-            {/* Statistics */}
             <div className="history-stats">
 
                 <div className="history-stat-card">
@@ -261,7 +268,6 @@ function ScanHistory() {
 
             </div>
 
-            {/* Error Message */}
             {error && (
                 <div className="history-error">
                     <AlertTriangle size={18} />
@@ -269,7 +275,6 @@ function ScanHistory() {
                 </div>
             )}
 
-            {/* History Table */}
             <div className="history-table-section">
 
                 <div className="history-table-heading">
@@ -319,7 +324,24 @@ function ScanHistory() {
 
                                 {history.map((item) => (
 
-                                    <tr key={item.id}>
+                                    <tr
+                                        key={item.id}
+                                        className={
+                                            selectedHistoryId === item.id
+                                                ? "history-row-selected"
+                                                : ""
+                                        }
+                                        onClick={() =>
+                                            setSelectedHistoryId(item.id)
+                                        }
+                                        onKeyDown={(event) =>
+                                            handleRowKeyDown(event, item.id)
+                                        }
+                                        tabIndex={0}
+                                        aria-selected={
+                                            selectedHistoryId === item.id
+                                        }
+                                    >
 
                                         <td>{item.id}</td>
 
@@ -377,7 +399,6 @@ function ScanHistory() {
 
             </div>
 
-            {/* Footer */}
             <div className="history-footer">
                 <CheckCircle size={16} />
                 Your scan records are securely managed by PhishShield.
