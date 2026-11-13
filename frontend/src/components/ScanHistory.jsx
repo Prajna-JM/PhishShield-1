@@ -13,7 +13,7 @@ import {
 
 import "./ScanHistory.css";
 
-const API_URL = "http://127.0.0.1:5000/api";
+const API_URL = "https://phishshield-1-backend.onrender.com/api";
 
 function ScanHistory() {
     const [history, setHistory] = useState([]);

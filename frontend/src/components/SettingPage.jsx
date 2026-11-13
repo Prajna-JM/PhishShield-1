@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import "./SettingsPage.css";
 
-const API_URL = "http://127.0.0.1:5000/api";
+const API_URL = "https://phishshield-1-backend.onrender.com/api";
 
 function SettingsPage({ onHistoryCleared }) {
     const [clearing, setClearing] = useState(false);

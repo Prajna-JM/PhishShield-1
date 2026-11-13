@@ -2,7 +2,7 @@
 import { useState } from "react";
 import "./AuthPages.css";
 
-const API = "http://127.0.0.1:5000/api/auth";
+const API = "https://phishshield-1-backend.onrender.com/api/auth";
 
 function AuthPages({ onAuthenticated }) {
   const [page, setPage] = useState("home");

@@ -176,7 +176,7 @@ function App() {
 
     try {
       const response = await axios.get(
-        "http://127.0.0.1:5000/api/stats",
+        "https://phishshield-1-backend.onrender.com/api/stats",
         {
           headers: getAuthHeaders()
         }
@@ -218,10 +218,10 @@ function App() {
 
     try {
       const [statsResponse, usersResponse] = await Promise.all([
-        axios.get("http://127.0.0.1:5000/api/admin/stats", {
+        axios.get("https://phishshield-1-backend.onrender.com/api/admin/stats", {
           headers: getAuthHeaders()
         }),
-        axios.get("http://127.0.0.1:5000/api/admin/users", {
+        axios.get("https://phishshield-1-backend.onrender.com/api/admin/users", {
           headers: getAuthHeaders()
         })
       ]);
@@ -252,7 +252,7 @@ function App() {
 
     try {
       const response = await axios.get(
-        `http://127.0.0.1:5000/api/admin/user/${user.id}/scans`,
+        `https://phishshield-1-backend.onrender.com/api/admin/user/${user.id}/scans`,
         { headers: getAuthHeaders() }
       );
 
@@ -290,7 +290,7 @@ function App() {
 
     try {
       const response = await axios.post(
-        "http://127.0.0.1:5000/api/scan",
+        "https://phishshield-1-backend.onrender.com/api/scan",
         { message: message },
         {
           headers: {
@@ -329,7 +329,7 @@ function App() {
 
     try {
       const response = await axios.post(
-        "http://127.0.0.1:5000/api/scan-url",
+        "https://phishshield-1-backend.onrender.com/api/scan-url",
         { url: url.trim() },
         {
           headers: {
