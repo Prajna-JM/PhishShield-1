@@ -573,6 +573,93 @@ def update_user_status(user_id):
             "success": False,
             "message": "Unable to update user status."
         }), 500
+        
+        
+@app.route("/api/admin/users/<int:user_id>", methods=["DELETE"])
+@jwt_required()
+def delete_admin_user(user_id):
+    access_error = check_admin()
+
+    if access_error:
+        return access_error
+
+    admin_id = get_jwt_identity()
+
+    if str(admin_id) == str(user_id):
+        return jsonify({
+            "success": False,
+            "message": "You cannot delete your own admin account."
+        }), 403
+
+    try:
+        with sqlite3.connect(USERS_DB_PATH, timeout=10) as conn:
+            conn.row_factory = sqlite3.Row
+
+            conn.execute(
+                "ATTACH DATABASE ? AS scans",
+                (str(SCAN_DB_PATH),)
+            )
+
+            conn.execute("BEGIN IMMEDIATE")
+
+            user = conn.execute(
+                """
+                SELECT id, name, email, role
+                FROM users
+                WHERE id = ?
+                """,
+                (user_id,)
+            ).fetchone()
+
+            if not user:
+                conn.rollback()
+                return jsonify({
+                    "success": False,
+                    "message": "User not found."
+                }), 404
+
+            if user["role"] == "admin":
+                admin_count = conn.execute(
+                    "SELECT COUNT(*) FROM users WHERE role = 'admin'"
+                ).fetchone()[0]
+
+                if admin_count <= 1:
+                    conn.rollback()
+                    return jsonify({
+                        "success": False,
+                        "message": "Cannot delete the last remaining admin account."
+                    }), 403
+
+            deleted_scans = conn.execute(
+                """
+                DELETE FROM scans.scan_history
+                WHERE CAST(user_id AS TEXT) = ?
+                """,
+                (str(user_id),)
+            ).rowcount
+
+            conn.execute(
+                "DELETE FROM users WHERE id = ?",
+                (user_id,)
+            )
+
+            conn.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "User account and associated scan history deleted successfully.",
+            "deleted_user_id": user_id,
+            "deleted_scans": deleted_scans
+        }), 200
+
+    except Exception as e:
+        print("User account deletion error:", str(e))
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to delete user account."
+        }), 500
+
 
 
 if __name__ == "__main__":

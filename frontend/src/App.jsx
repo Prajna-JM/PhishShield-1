@@ -27,7 +27,8 @@ import {
   Users,
   RefreshCw,
   Eye,
-  UserCheck
+  UserCheck,
+  Trash2
 } from "lucide-react";
 
 import "./App.css";
@@ -35,8 +36,6 @@ import "./App.css";
 const API_BASE_URL = "https://phishshield-1-backend.onrender.com";
 
 function App() {
-
-  // Logged-in user details
   const getLoggedInUser = () => {
     try {
       return JSON.parse(localStorage.getItem("user") || "{}");
@@ -66,6 +65,7 @@ function App() {
   const [selectedAdminUser, setSelectedAdminUser] = useState(null);
   const [selectedUserScans, setSelectedUserScans] = useState([]);
   const [selectedUserLoading, setSelectedUserLoading] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState(null);
 
   const filteredAdminUsers = adminUsers.filter((user) => {
     const search = adminSearch.trim().toLowerCase();
@@ -113,7 +113,6 @@ function App() {
     recent_scans: []
   });
 
-  // Authentication headers
   const getAuthHeaders = () => {
     const token = localStorage.getItem("access_token");
 
@@ -122,7 +121,6 @@ function App() {
     };
   };
 
-  // Common API error handler
   const getApiErrorMessage = (err, action) => {
     console.error(`${action} error:`, err);
     console.error("Error response:", err.response);
@@ -151,7 +149,7 @@ function App() {
     return err.message || `Unable to complete ${action}.`;
   };
 
-  // Logout function
+  // Logout
   const handleLogout = () => {
     const confirmed = window.confirm(
       "Are you sure you want to logout?"
@@ -236,7 +234,6 @@ function App() {
     }
   };
 
-  // Load statistics after login
   useEffect(() => {
     if (isAuthenticated) {
       loadDashboardStats();
@@ -317,6 +314,57 @@ function App() {
 
     } finally {
       setSelectedUserLoading(false);
+    }
+  };
+
+  // Delete a registered user
+  const handleDeleteUser = async (user) => {
+    if (String(user.id) === String(loggedInUser.id)) {
+      window.alert("You cannot delete your own admin account.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete ${user.name} (${user.email})?\n\nTheir account and all associated scan history will be deleted. This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeletingUserId(user.id);
+      setAdminError("");
+
+      const response = await axios.delete(
+        `${API_BASE_URL}/api/admin/users/${user.id}`,
+        {
+          headers: getAuthHeaders()
+        }
+      );
+
+      if (response.data.success) {
+        if (
+          String(selectedAdminUser?.id) === String(user.id)
+        ) {
+          setSelectedAdminUser(null);
+          setSelectedUserScans([]);
+        }
+
+        await loadAdminData();
+
+        window.alert(
+          `${user.name}'s account was deleted successfully.\n${response.data.deleted_scans ?? 0} scan records were also deleted.`
+        );
+      }
+
+    } catch (err) {
+      console.error("Unable to delete user:", err);
+
+      setAdminError(
+        getApiErrorMessage(err, "deleting user account")
+      );
+
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -625,7 +673,6 @@ function App() {
 
           </div>
 
-          {/* Explainable AI Analysis */}
           <div className="explanation">
 
             <h4>
@@ -653,7 +700,6 @@ function App() {
 
           </div>
 
-          {/* URL Analysis */}
           {Array.isArray(result.explanation?.url_analysis) &&
             result.explanation.url_analysis.length > 0 && (
               <div className="explanation">
@@ -894,7 +940,6 @@ function App() {
           })}
         </nav>
 
-        {/* Sidebar bottom */}
         <div className="sidebar-bottom">
 
           <div className="security-card">
@@ -907,7 +952,6 @@ function App() {
             </p>
           </div>
 
-          {/* Dynamic user profile */}
           <div className="profile">
 
             <div className="profile-avatar">
@@ -921,7 +965,6 @@ function App() {
 
           </div>
 
-          {/* Logout button */}
           <button
             className="logout-btn"
             onClick={handleLogout}
@@ -1171,7 +1214,7 @@ function App() {
                   style={{
                     width: "100%",
                     borderCollapse: "collapse",
-                    minWidth: "650px"
+                    minWidth: "800px"
                   }}
                 >
                   <thead>
@@ -1236,24 +1279,71 @@ function App() {
                           {user.total_scans}
                         </td>
 
+                        {/* View Scans and Delete Actions */}
                         <td style={{ padding: "14px 10px" }}>
-                          <button
-                            type="button"
-                            onClick={() => loadSelectedUserScans(user)}
+                          <div
                             style={{
-                              display: "inline-flex",
+                              display: "flex",
                               alignItems: "center",
-                              gap: "6px",
-                              border: "1px solid #d7dce5",
-                              borderRadius: "8px",
-                              padding: "8px 11px",
-                              background: "#fff",
-                              cursor: "pointer"
+                              gap: "8px"
                             }}
                           >
-                            <Eye size={15} />
-                            View Scans
-                          </button>
+
+                            <button
+                              type="button"
+                              onClick={() => loadSelectedUserScans(user)}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                border: "1px solid #d7dce5",
+                                borderRadius: "8px",
+                                padding: "8px 11px",
+                                background: "#fff",
+                                cursor: "pointer"
+                              }}
+                            >
+                              <Eye size={15} />
+                              View Scans
+                            </button>
+
+                            {String(user.id) !== String(loggedInUser.id) && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteUser(user)}
+                                disabled={deletingUserId === user.id}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                  border: "1px solid #f3b5b5",
+                                  borderRadius: "8px",
+                                  padding: "8px 11px",
+                                  background: "#fff0f0",
+                                  color: "#c62828",
+                                  cursor:
+                                    deletingUserId === user.id
+                                      ? "not-allowed"
+                                      : "pointer",
+                                  opacity:
+                                    deletingUserId === user.id
+                                      ? 0.6
+                                      : 1
+                                }}
+                              >
+                                {deletingUserId === user.id ? (
+                                  <Loader2 className="spin" size={15} />
+                                ) : (
+                                  <Trash2 size={15} />
+                                )}
+
+                                {deletingUserId === user.id
+                                  ? "Deleting..."
+                                  : "Delete"}
+                              </button>
+                            )}
+
+                          </div>
                         </td>
                       </tr>
                     ))}
