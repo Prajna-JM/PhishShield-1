@@ -133,6 +133,7 @@ def health():
     }), 200
 
 
+
 @app.route("/api/scan", methods=["POST"])
 @jwt_required()
 def scan_message():
@@ -150,6 +151,7 @@ def scan_message():
 
         processed_message = preprocess_text(message)
         features = vectorizer.transform([processed_message])
+
         prediction = model.predict(features)[0]
         probabilities = model.predict_proba(features)[0]
 
@@ -172,13 +174,15 @@ def scan_message():
             "1", "phishing", "spam", "true"
         ]:
             ml_prediction = "Phishing"
+            explanation_prediction = 1
         else:
             ml_prediction = "Safe"
+            explanation_prediction = 0
 
         explanation = generate_explanation(
             message,
-            ml_prediction,
-            phishing_probability
+            explanation_prediction,
+            phishing_probability * 100
         )
 
         risk_score = round(phishing_probability * 100)
@@ -190,10 +194,7 @@ def scan_message():
         else:
             risk_level = "Low"
 
-        if isinstance(explanation, dict):
-            reasons = explanation.get("reasons", [])
-        else:
-            reasons = []
+        reasons = explanation.get("explanations", [])
 
         save_scan(
             user_id=user_id,
@@ -214,7 +215,8 @@ def scan_message():
             ),
             "risk_score": risk_score,
             "risk_level": risk_level,
-            "explanation": explanation
+            "explanation": explanation,
+            "reasons": reasons
         }), 200
 
     except Exception as e:
@@ -224,6 +226,7 @@ def scan_message():
             "success": False,
             "error": str(e)
         }), 500
+
 
 
 @app.route("/api/scan-url", methods=["POST"])
@@ -578,3 +581,4 @@ if __name__ == "__main__":
         host="127.0.0.1",
         port=5000
     )
+/api/scan

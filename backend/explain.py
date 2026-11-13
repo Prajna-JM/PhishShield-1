@@ -3,8 +3,6 @@ from preprocessing import preprocess_text
 from security import analyze_url
 import re
 
-
-# Words and phrases that may indicate phishing
 SUSPICIOUS_PHRASES = [
     "urgent",
     "immediately",
@@ -30,26 +28,23 @@ def generate_explanation(message, ml_prediction, ml_probability=None):
     explanations = []
     url_results = []
 
-    clean_message = preprocess_text(message)
-
     original_message = str(message).lower()
 
-    # Check suspicious phrases
     for phrase in SUSPICIOUS_PHRASES:
-
         if phrase in original_message:
             explanations.append(
                 f"Suspicious phrase detected: '{phrase}'"
             )
 
-    # Check URLs present in the message
     urls = re.findall(
-        r'https?://[^\s<>]+|www\.[^\s<>]+',
+        r'https?://[^\s<>"]+|www\.[^\s<>"]+',
         str(message),
         flags=re.IGNORECASE
     )
 
     for url in urls:
+
+        url = url.rstrip(".,!?;:)]}")
 
         result = analyze_url(url)
         url_results.append(result)
@@ -62,30 +57,22 @@ def generate_explanation(message, ml_prediction, ml_probability=None):
             for reason in result["reasons"]:
                 explanations.append(reason)
 
-    # ML prediction explanation
     if ml_prediction == 1:
-
         explanations.append(
             "Machine Learning model classified this message as phishing."
         )
-
     else:
-
         explanations.append(
             "Machine Learning model classified this message as legitimate."
         )
 
-    # Add model probability if available
     if ml_probability is not None:
-
         explanations.append(
             f"Model phishing probability: {ml_probability:.2f}%"
         )
 
-    # Remove duplicate explanations
     explanations = list(dict.fromkeys(explanations))
 
-    # Final result
     if ml_prediction == 1 or any(
         result["is_suspicious"] for result in url_results
     ):
@@ -100,7 +87,6 @@ def generate_explanation(message, ml_prediction, ml_probability=None):
     }
 
 
-# Test explanation module
 if __name__ == "__main__":
 
     sample_message = """
@@ -116,7 +102,6 @@ if __name__ == "__main__":
     )
 
     print("\n========== PHISHSHIELD EXPLANATION ==========")
-
     print("Final Prediction:", result["prediction"])
 
     print("\nReasons:")
