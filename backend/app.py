@@ -25,7 +25,7 @@ from database import (
 )
 
 
-app = Flask(__name__)
+
 app = Flask(__name__)
 
 CORS(
@@ -45,8 +45,7 @@ CORS(
 init_auth(app)
 init_db()
 
-init_auth(app)
-init_db()
+
 
 BASE_DIR = Path(__file__).resolve().parent
 
