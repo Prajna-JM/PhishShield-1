@@ -103,6 +103,7 @@ def user_lookup_error(jwt_header, jwt_data):
     }), 401
 
 
+
 def send_email(receiver, subject, body):
     sender = os.getenv("EMAIL_ADDRESS")
     password = os.getenv("EMAIL_PASSWORD")
@@ -116,10 +117,11 @@ def send_email(receiver, subject, body):
     msg["To"] = receiver
     msg.set_content(body)
 
-    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+    with smtplib.SMTP("smtp.gmail.com", 587, timeout=8) as server:
         server.starttls()
         server.login(sender, password)
         server.send_message(msg)
+
 
 
 @auth_bp.route("/register", methods=["POST"])
