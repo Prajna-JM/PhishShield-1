@@ -26,7 +26,24 @@ from database import (
 
 
 app = Flask(__name__)
-CORS(app)
+app = Flask(__name__)
+
+CORS(
+    app,
+    resources={
+        r"/api/*": {
+            "origins": [
+                "https://phishshield-1.vercel.app",
+                "https://phishshield-1-1fbl0v6t2-team-0699.vercel.app"
+            ]
+        }
+    },
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+)
+
+init_auth(app)
+init_db()
 
 init_auth(app)
 init_db()
