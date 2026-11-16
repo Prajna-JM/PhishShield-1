@@ -1,9 +1,9 @@
 
 import os
 import sqlite3
-import smtplib
 from pathlib import Path
-from email.message import EmailMessage
+
+import resend
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import (
@@ -103,25 +103,31 @@ def user_lookup_error(jwt_header, jwt_data):
     }), 401
 
 
-
 def send_email(receiver, subject, body):
-    sender = os.getenv("EMAIL_ADDRESS")
-    password = os.getenv("EMAIL_PASSWORD")
+    api_key = os.getenv("RESEND_API_KEY")
+    sender = os.getenv(
+        "EMAIL_FROM",
+        "Team PhishShield <onboarding@resend.dev>"
+    )
 
-    if not sender or not password:
-        raise ValueError("Email configuration is missing.")
+    if not api_key:
+        raise ValueError("RESEND_API_KEY is missing.")
 
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = f"Team PhishShield <{sender}>"
-    msg["To"] = receiver
-    msg.set_content(body)
+    if not sender:
+        raise ValueError("EMAIL_FROM is missing.")
 
-    with smtplib.SMTP("smtp.gmail.com", 587, timeout=8) as server:
-        server.starttls()
-        server.login(sender, password)
-        server.send_message(msg)
+    resend.api_key = api_key
 
+    result = resend.Emails.send({
+        "from": sender,
+        "to": [receiver],
+        "subject": subject,
+        "text": body
+    })
+
+    print("Resend email response:", result)
+
+    return result
 
 
 @auth_bp.route("/register", methods=["POST"])
@@ -133,10 +139,14 @@ def register():
     password = data.get("password", "")
 
     if not name or not email or not password:
-        return jsonify({"message": "All fields are required."}), 400
+        return jsonify({
+            "message": "All fields are required."
+        }), 400
 
     if "@" not in email:
-        return jsonify({"message": "Enter a valid email address."}), 400
+        return jsonify({
+            "message": "Enter a valid email address."
+        }), 400
 
     if len(password) < 8:
         return jsonify({
@@ -156,7 +166,9 @@ def register():
             )
 
     except sqlite3.IntegrityError:
-        return jsonify({"message": "Email is already registered."}), 409
+        return jsonify({
+            "message": "Email is already registered."
+        }), 409
 
     try:
         send_email(
@@ -168,7 +180,10 @@ def register():
             "Stay safe online.\n"
             "Team PhishShield"
         )
-    except Exception:
+
+    except Exception as e:
+        print("Registration email failed:", str(e))
+
         return jsonify({
             "message": "Account created, but confirmation email could not be sent."
         }), 201
@@ -186,7 +201,9 @@ def login():
     password = data.get("password", "")
 
     if not email or not password:
-        return jsonify({"message": "Email and password are required."}), 400
+        return jsonify({
+            "message": "Email and password are required."
+        }), 400
 
     with get_db() as conn:
         user = conn.execute(
@@ -195,7 +212,9 @@ def login():
         ).fetchone()
 
     if not user or not check_password_hash(user["password"], password):
-        return jsonify({"message": "Invalid email or password."}), 401
+        return jsonify({
+            "message": "Invalid email or password."
+        }), 401
 
     if user["is_active"] != 1:
         return jsonify({
@@ -221,8 +240,9 @@ def login():
             "If this was not you, please secure your account immediately.\n\n"
             "Team PhishShield"
         )
+
     except Exception as e:
-        print("Login notification email failed:", e)
+        print("Login notification email failed:", str(e))
         email_sent = False
 
     return jsonify({

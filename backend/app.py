@@ -25,7 +25,6 @@ from database import (
 )
 
 
-
 app = Flask(__name__)
 
 CORS(
@@ -33,18 +32,19 @@ CORS(
     resources={
         r"/api/*": {
             "origins": [
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
                 "https://phishshield-1.vercel.app",
                 "https://phishshield-1-1fbl0v6t2-team-0699.vercel.app"
             ]
         }
     },
     allow_headers=["Content-Type", "Authorization"],
-    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 )
 
 init_auth(app)
 init_db()
-
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -131,7 +131,6 @@ def health():
         "message": "PhishShield backend is running",
         "model_loaded": True
     }), 200
-
 
 
 @app.route("/api/scan", methods=["POST"])
@@ -226,7 +225,6 @@ def scan_message():
             "success": False,
             "error": str(e)
         }), 500
-
 
 
 @app.route("/api/scan-url", methods=["POST"])
@@ -573,8 +571,8 @@ def update_user_status(user_id):
             "success": False,
             "message": "Unable to update user status."
         }), 500
-        
-        
+
+
 @app.route("/api/admin/users/<int:user_id>", methods=["DELETE"])
 @jwt_required()
 def delete_admin_user(user_id):
@@ -659,7 +657,6 @@ def delete_admin_user(user_id):
             "success": False,
             "message": "Unable to delete user account."
         }), 500
-
 
 
 if __name__ == "__main__":
