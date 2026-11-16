@@ -8,7 +8,9 @@ import resend
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import (
     JWTManager,
-    create_access_token
+    create_access_token,
+    jwt_required,
+    get_jwt
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
@@ -257,3 +259,108 @@ def login():
             "is_active": bool(user["is_active"])
         }
     }), 200
+
+
+@auth_bp.route("/admin/migrate-users", methods=["POST"])
+@jwt_required()
+def migrate_users():
+    claims = get_jwt()
+
+    if claims.get("role") != "admin":
+        return jsonify({
+            "success": False,
+            "message": "Admin access required."
+        }), 403
+
+    data = request.get_json(silent=True) or {}
+    users = data.get("users")
+
+    if not isinstance(users, list):
+        return jsonify({
+            "success": False,
+            "message": "A users list is required."
+        }), 400
+
+    if len(users) > 1000:
+        return jsonify({
+            "success": False,
+            "message": "Maximum 1000 users per migration request."
+        }), 400
+
+    imported = 0
+    skipped = 0
+    invalid = 0
+
+    try:
+        with get_db() as conn:
+            for user in users:
+                if not isinstance(user, dict):
+                    invalid += 1
+                    continue
+
+                name = str(user.get("name") or "").strip()
+                email = str(user.get("email") or "").strip().lower()
+                password_hash = str(user.get("password") or "")
+                created_at = user.get("created_at")
+                is_active = user.get("is_active", 1)
+
+                if (
+                    not name
+                    or "@" not in email
+                    or ":" not in password_hash
+                    or "$" not in password_hash
+                ):
+                    invalid += 1
+                    continue
+
+                try:
+                    is_active = 1 if int(is_active) == 1 else 0
+                except (TypeError, ValueError):
+                    is_active = 1
+
+                cursor = conn.execute(
+                    """
+                    INSERT OR IGNORE INTO users
+                    (name, email, password, created_at, role, is_active)
+                    VALUES (?, ?, ?, ?, 'user', ?)
+                    """,
+                    (
+                        name,
+                        email,
+                        password_hash,
+                        created_at,
+                        is_active
+                    )
+                )
+
+                if cursor.rowcount == 1:
+                    imported += 1
+                else:
+                    skipped += 1
+
+            admin_email = os.getenv(
+                "ADMIN_EMAIL", ""
+            ).strip().lower()
+
+            if admin_email:
+                conn.execute(
+                    "UPDATE users SET role = 'admin' WHERE email = ?",
+                    (admin_email,)
+                )
+
+        return jsonify({
+            "success": True,
+            "message": "User migration completed.",
+            "imported": imported,
+            "skipped_existing_emails": skipped,
+            "invalid_records": invalid,
+            "total_received": len(users)
+        }), 200
+
+    except Exception as e:
+        print("User migration error:", str(e))
+
+        return jsonify({
+            "success": False,
+            "message": "User migration failed."
+        }), 500
